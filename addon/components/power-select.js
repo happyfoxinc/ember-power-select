@@ -75,6 +75,7 @@ export default @tagName('') @layout(templateLayout) class PowerSelect extends Co
   @fallbackIfUndefined('power-select/placeholder') placeholderComponent
   @fallbackIfUndefined(option => option) buildSelection
   @fallbackIfUndefined("button") triggerRole
+  @fallbackIfUndefined(false) allowGroupSearch
   publicAPI = initialState;
 
   // Lifecycle hooks
@@ -478,7 +479,7 @@ export default @tagName('') @layout(templateLayout) class PowerSelect extends Co
   }
 
   filter(options, term, skipDisabled = false) {
-    return filterOptions(options || [], term, this.optionMatcher, skipDisabled);
+    return filterOptions(options || [], term, this.optionMatcher, skipDisabled, this.allowGroupSearch);
   }
 
   findWithOffset(options, term, offset, skipDisabled = false) {
