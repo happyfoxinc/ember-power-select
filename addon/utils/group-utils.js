@@ -126,9 +126,15 @@ export function filterOptions(options, text, matcher, skipDisabled = false) {
     let entry = options.objectAt ? options.objectAt(i) : options[i];
     if (!skipDisabled || !get(entry, 'disabled')) {
       if (isGroup(entry)) {
-        let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled);
-        if (get(suboptions, 'length') > 0) {
-          opts.push(copyGroup(entry, suboptions));
+        let groupName = get(entry, 'groupName');
+        /* match group name by search text */
+        if (defaultMatcher(groupName, text) != -1) {
+          opts.push(copyGroup(entry, entry.options));
+        } else {
+          let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled);
+          if (get(suboptions, 'length') > 0) {
+            opts.push(copyGroup(entry, suboptions));
+          }
         }
       } else if (matcher(entry, text) >= 0) {
         opts.push(entry);
