@@ -79,6 +79,38 @@ module('Integration | Component | Ember Power Select (Groups)', function(hooks) 
     assert.deepEqual(groupNames, ['Bigs', 'Really big'], 'With no depth level');
   });
 
+  test('Filter by group name if allowGroupSearch is enabled', async function(assert) {
+    assert.expect(4);
+
+    this.groupedNumbers = groupedNumbers;
+    
+    // If allowGroupSearch is enabled
+    await render(hbs`
+      <PowerSelect @options={{this.groupedNumbers}} @allowGroupSearch={{true}} @onChange={{action (mut foo)}} @searchEnabled={{true}} as |option|>
+        {{option}}
+      </PowerSelect>
+    `);
+    await clickTrigger();
+    await typeInSearch('sma');
+    let groupNames = Array.from(document.querySelectorAll('.ember-power-select-group-name')).map((e) => e.textContent.trim());
+    let optionValues = Array.from(document.querySelectorAll('.ember-power-select-option')).map((e) => e.textContent.trim());
+    assert.deepEqual(groupNames, ['Smalls'], 'Only the groups with matching name are shown');
+    assert.deepEqual(optionValues, ['one', 'two', 'three'], 'options of the matching group are shown');
+    
+    // If allowGroupSearch is not enabled
+    await render(hbs`
+      <PowerSelect @options={{this.groupedNumbers}} @onChange={{action (mut foo)}} @searchEnabled={{true}} as |option|>
+        {{option}}
+      </PowerSelect>
+    `);
+    await clickTrigger();
+    await typeInSearch('sma');
+    groupNames = Array.from(document.querySelectorAll('.ember-power-select-group-name')).map((e) => e.textContent.trim());
+    optionValues = Array.from(document.querySelectorAll('.ember-power-select-option')).map((e) => e.textContent.trim());
+    assert.deepEqual(groupNames, [], 'filter does not respect group name as allowSearch is not enabled');
+    assert.deepEqual(optionValues, ['No results found'], 'no options matches');
+  });
+
   test('Click on an option of a group select selects the option and closes the dropdown', async function(assert) {
     assert.expect(2);
 

@@ -119,16 +119,22 @@ export function findOptionWithOffset(options, text, matcher, offset, skipDisable
   return foundAfterOffset ? foundAfterOffset : foundBeforeOffset;
 }
 
-export function filterOptions(options, text, matcher, skipDisabled = false) {
+export function filterOptions(options, text, matcher, skipDisabled = false, allowGroupSearch = false) {
   let opts = A();
   let length = get(options, 'length');
   for (let i = 0; i < length; i++) {
     let entry = options.objectAt ? options.objectAt(i) : options[i];
     if (!skipDisabled || !get(entry, 'disabled')) {
       if (isGroup(entry)) {
-        let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled);
-        if (get(suboptions, 'length') > 0) {
-          opts.push(copyGroup(entry, suboptions));
+        let groupName = get(entry, 'groupName');
+        /* search by group name */
+        if (allowGroupSearch && defaultMatcher(groupName, text) != -1) {
+          opts.push(copyGroup(entry, entry.options));
+        } else {
+          let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled);
+          if (get(suboptions, 'length') > 0) {
+            opts.push(copyGroup(entry, suboptions));
+          }
         }
       } else if (matcher(entry, text) >= 0) {
         opts.push(entry);
