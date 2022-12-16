@@ -72,10 +72,7 @@ export function optionAtIndex(originalCollection, index) {
 }
 
 function copyGroup(group, suboptions) {
-  let groupCopy = { groupName: group.groupName, options: suboptions };
-  if (group.hasOwnProperty('disabled')) {
-    groupCopy.disabled = group.disabled;
-  }
+  let groupCopy = { ...group, options: suboptions };
   return groupCopy;
 }
 
