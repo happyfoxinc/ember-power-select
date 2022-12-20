@@ -76,6 +76,15 @@ function copyGroup(group, suboptions) {
   if (group.hasOwnProperty('disabled')) {
     groupCopy.disabled = group.disabled;
   }
+  if (group.hasOwnProperty('canSelect')) {
+    groupCopy.canSelect = group.canSelect;
+  }
+  if (group.hasOwnProperty('isAnyOptionSelected')) {
+    groupCopy.isAnyOptionSelected = group.isAnyOptionSelected;
+  }
+  if (group.hasOwnProperty('isAllOptionsSelected')) {
+    groupCopy.isAllOptionsSelected = group.isAllOptionsSelected;
+  }
   return groupCopy;
 }
 
