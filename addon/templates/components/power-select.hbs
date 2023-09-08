@@ -56,7 +56,7 @@
   </dropdown.Trigger>
   <dropdown.Content
     @htmlTag={{this._ebdContentTagName}}
-    @animationEnabled={{@animationEnabled}}
+    @animationEnabled={{or @animationEnabled false}}
     class={{this.concatenatedDropdownClasses}}>
     {{#let (component this.beforeOptionsComponent) as |BeforeOptions|}}
       <BeforeOptions
