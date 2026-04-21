@@ -99,5 +99,9 @@
   },
   "ember-addon": {
     "configPath": "tests/dummy/config"
+  },
+  "resolutions": {
+    "ember-basic-dropdown/ember-maybe-in-element": "2.0.1",
+    "ember-basic-dropdown/ember-maybe-in-element/ember-cli-babel": "7.26.11"
   }
 }
