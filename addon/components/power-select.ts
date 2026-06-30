@@ -82,6 +82,7 @@ export interface PowerSelectArgs {
   onBlur?: (select: Select, event: FocusEvent) => void
   scrollTo?: (option: any, select: Select) => void
   registerAPI?: (select: Select) => void
+  allowGroupSearch?: boolean
 }
 
 const isArrayable = <T>(coll: any): coll is Arrayable<T> => {
@@ -552,7 +553,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
   _filter(options: any[], term: string, skipDisabled = false): any[] {
     let matcher = this.args.matcher || defaultMatcher;
     let optionMatcher = getOptionMatcher(matcher, defaultMatcher, this.args.searchField);
-    return filterOptions(options || [], term, optionMatcher, skipDisabled);
+    return filterOptions(options || [], term, optionMatcher, skipDisabled, this.args.allowGroupSearch);
   }
 
   _updateIsActive(value: boolean) {
