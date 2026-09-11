@@ -92,11 +92,20 @@ export function optionAtIndex(originalCollection: any, index: number): { disable
   })(originalCollection, false) || { disabled: false, option: undefined };
 }
 
-interface Group { options: any[], disabled?: boolean, groupName: string }
+interface Group { options: any[], disabled?: boolean, groupName: string, canSelect: boolean, isAnyOptionSelected: boolean, isAllOptionsSelected: boolean }
 function copyGroup(group: Group, suboptions: any[]): Group {
   let groupCopy: Group = { groupName: group.groupName, options: suboptions };
   if (group.hasOwnProperty('disabled')) {
     groupCopy.disabled = group.disabled;
+  }
+  if (group.hasOwnProperty('canSelect')) {
+    groupCopy.canSelect = group.canSelect;
+  }
+  if (group.hasOwnProperty('isAnyOptionSelected')) {
+    groupCopy.isAnyOptionSelected = group.isAnyOptionSelected;
+  }
+  if (group.hasOwnProperty('isAllOptionsSelected')) {
+    groupCopy.isAllOptionsSelected = group.isAllOptionsSelected;
   }
   return groupCopy;
 }
@@ -142,16 +151,22 @@ export function findOptionWithOffset(options: any, text: string, matcher: Matche
   return foundAfterOffset ? foundAfterOffset : foundBeforeOffset;
 }
 
-export function filterOptions(options: any, text: string, matcher: MatcherFn, skipDisabled = false): any[] {
+export function filterOptions(options: any, text: string, matcher: MatcherFn, skipDisabled = false, allowGroupSearch = false): any[] {
   let opts = A();
   let length = get(options, 'length');
   for (let i = 0; i < length; i++) {
     let entry = options.objectAt ? options.objectAt(i) : options[i];
     if (!skipDisabled || !get(entry, 'disabled')) {
       if (isGroup(entry)) {
-        let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled);
-        if (get(suboptions, 'length') > 0) {
-          opts.push(copyGroup(entry, suboptions));
+        let groupName = get(entry, 'groupName');
+        // search by group name
+        if (allowGroupSearch && defaultMatcher(groupName, text) !== -1) {
+          opts.push(copyGroup(entry, get(entry, 'options')));
+        } else {
+          let suboptions = filterOptions(get(entry, 'options'), text, matcher, skipDisabled, allowGroupSearch);
+          if (get(suboptions, 'length') > 0) {
+            opts.push(copyGroup(entry, suboptions));
+          }
         }
       } else if (matcher(entry, text) >= 0) {
         opts.push(entry);
