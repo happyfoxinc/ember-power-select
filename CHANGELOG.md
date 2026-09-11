@@ -1,4 +1,84 @@
+
+
+## v6.0.1 (2022-08-23)
+
+#### :rocket: Enhancement
+* [#1406](https://github.com/cibernox/ember-power-select/pull/1406) Add support for stylus (Apple Pencil) ([@krasnoukhov](https://github.com/krasnoukhov))
+
+#### Committers: 1
+- Dmitry Krasnoukhov ([@krasnoukhov](https://github.com/krasnoukhov))
+
+## v6.0.0 (2022-08-05)
+
+#### :boom: Breaking Change
+* [#1533](https://github.com/cibernox/ember-power-select/pull/1533) Require node >= 14, Ember >= 3.24 ([@rwwagner90](https://github.com/rwwagner90))
+* [#1526](https://github.com/cibernox/ember-power-select/pull/1526) Delete files array to fix TS, require ember-basic-dropdown 6+ ([@rwwagner90](https://github.com/rwwagner90))
+
+#### :rocket: Enhancement
+* [#1530](https://github.com/cibernox/ember-power-select/pull/1530) embroider-optimized support ([@rwwagner90](https://github.com/rwwagner90))
+* [#1529](https://github.com/cibernox/ember-power-select/pull/1529) Allow a wider range of ember-basic-dropdown versions ([@cibernox](https://github.com/cibernox))
+
+#### :house: Internal
+* [#1535](https://github.com/cibernox/ember-power-select/pull/1535) Add rwjblue release-it ([@rwwagner90](https://github.com/rwwagner90))
+* [#1532](https://github.com/cibernox/ember-power-select/pull/1532) Fix embroider-optimized ([@rwwagner90](https://github.com/rwwagner90))
+* [#1531](https://github.com/cibernox/ember-power-select/pull/1531) Update linting config, comply with prettier ([@rwwagner90](https://github.com/rwwagner90))
+* [#1506](https://github.com/cibernox/ember-power-select/pull/1506) Cleans up scrollTo's element finding ([@matthew-robertson](https://github.com/matthew-robertson))
+
+#### Committers: 4
+- Chris Manson ([@mansona](https://github.com/mansona))
+- Matthew Robertson ([@matthew-robertson](https://github.com/matthew-robertson))
+- Miguel Camba ([@cibernox](https://github.com/cibernox))
+- Robert Wagner ([@rwwagner90](https://github.com/rwwagner90))
+
 # Master
+
+# 5.0.4
+- Improve compatibility with embroider
+# 5.0.2
+- Make the component compatible with Embroider builds.
+- Revert #1470. It turned out to be a breaking change.
+# 5.0.1
+- (#1470) [ENHANCEMENT] For multiselects, ensure that, if an option is disabled, AND that option is selected, then we can't "remove" that option from the selection
+- Allow the addon to work with ember-basic-dropdown 3 and 4.
+
+# 5.0.0
+- (#1481) [MAYBE BREAKING] Big overhaul of the a11y of the component. Now it uses `aria-activedescendant` to properly announce highlighted options.
+- (#1483) [BREAKING] Now options always have `role=option`. Before the selected option had `role=alert` instead but with the recent
+  a11y enhancements this is more correct.
+# 4.1.7
+- Forward in `@animationEnabled` from PowerSelectMultiple to inner select #1475
+- Remove debugger statements introduced by mistake
+# 4.1.5
+- [ENHACEMENT] Update ember-basic-dropdown to 3.0.17 which includes updated `ember-element-helper` and should
+  be more friendly with embroider.
+- [BUGFIX] Ensure searchbox in multiple select doesn't submit its enclosing form when enter is pressed.
+
+# 4.1.4
+- [BUGFIX] Fix arrays appended to multiple selects' selected array (#1447)
+# 4.1.3
+- [CHORE] Move from travis to github actions, fixing the test suite along the way. This has also
+  updated the version of ember-basic-dropdown.
+
+# 4.1.2
+- [BUGFIX] Fix problem when passing `@initiallyOpened` along with `@selected`.
+
+# 4.1.1
+- [ENHANCEMENT] Allow to customize what's displayed when no item matches the search by passing a `@noMatchesMessageComponent`.
+
+# 4.1.0
+- [ENHANCEMENT] Makes changed to aria roles so the currently highlighted option can be announced by assistive
+  technology like Voice Over.
+- [CHORE] Relax allowed versions of ember-truth-helpers so projects are less likely to have to resolve dependencies.
+
+# 4.0.5
+- [BUGFIX] Remove event listeners on destroy.
+
+# 4.0.4
+- [BUGFIX] Ensure observers set when selected/options are promise proxies are properly removed when
+  the component is destroyed, to prevent memory leaks.
+
+# 4.0.3
+- Update `ember-concurrency-decorators` to 2.0
 
 # 4.0.0-beta.6
 - [BUGFIX] Multiple selects can receive an ember-data collection in the `@selected` attribute.

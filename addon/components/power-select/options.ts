@@ -7,6 +7,7 @@ interface Args {
   select: Select
   highlightOnHover?: boolean
   options: any[]
+  extra: any
 }
 
 const isTouchDevice = (!!window && 'ontouchstart' in window);
@@ -32,8 +33,13 @@ if(typeof FastBoot === 'undefined'){
 }
 
 export default class Options extends Component<Args> {
-  private isTouchDevice = isTouchDevice
-  private hasMoved = false
+  private isTouchDevice = this.args.extra?._isTouchDevice || isTouchDevice
+  private touchMoveEvent?: TouchEvent
+  private mouseOverHandler = (_: MouseEvent): void => {}
+  private mouseUpHandler = (_: MouseEvent): void => {}
+  private touchEndHandler = (_: TouchEvent): void => {}
+  private touchMoveHandler = (_: TouchEvent): void => {}
+  private touchStartHandler = (_: TouchEvent): void => {}
 
   @action
   addHandlers(element: Element) {
@@ -41,7 +47,7 @@ export default class Options extends Component<Args> {
     if (role === 'group') {
       return;
     }
-    let findOptionAndPerform = (action: Function, select: Select, e: Event): void => {
+    let findOptionAndPerform = (action: Function, e: Event): void => {
       if (e.target === null) return;
       let optionItem = (e.target as Element).closest('[data-option-index]');
       if (!optionItem) {
@@ -52,30 +58,32 @@ export default class Options extends Component<Args> {
       }
       let optionIndex = optionItem.getAttribute('data-option-index');
       if (optionIndex === null) return;
-      action(this._optionFromIndex(optionIndex), select, e);
+      action(this._optionFromIndex(optionIndex), e);
     };
-    element.addEventListener('mouseup', (e) => findOptionAndPerform(this.args.select.actions.choose, this.args.select, e));
+    this.mouseUpHandler = (e: MouseEvent): void => findOptionAndPerform(this.args.select.actions.choose, e);
+    element.addEventListener('mouseup', this.mouseUpHandler);
     if (this.args.highlightOnHover) {
-      element.addEventListener('mouseover', (e) => findOptionAndPerform(this.args.select.actions.highlight, this.args.select, e));
+      this.mouseOverHandler = (e: MouseEvent): void => findOptionAndPerform(this.args.select.actions.highlight, e);
+      element.addEventListener('mouseover', this.mouseOverHandler);
     }
     if (this.isTouchDevice) {
-      let touchMoveHandler = () => {
-        this.hasMoved = true;
+      this.touchMoveHandler = (e: TouchEvent): void => {
+        this.touchMoveEvent = e;
         if (element) {
-          element.removeEventListener('touchmove', touchMoveHandler);
+          element.removeEventListener('touchmove', this.touchMoveHandler);
         }
-      };
+      }
       // Add touch event handlers to detect taps
-      element.addEventListener('touchstart', () => {
-        element.addEventListener('touchmove', touchMoveHandler);
-      });
-      element.addEventListener('touchend', (e) => {
+      this.touchStartHandler = (_: TouchEvent): void => {
+        element.addEventListener('touchmove', this.touchMoveHandler);
+      }
+      this.touchEndHandler = (e: TouchEvent): void => {
         if (e.target === null) return;
         let optionItem = (e.target as Element).closest('[data-option-index]');
         if (optionItem === null) return;
         e.preventDefault();
-        if (this.hasMoved) {
-          this.hasMoved = false;
+        if (this._hasMoved(e)) {
+          this.touchMoveEvent = undefined;
           return;
         }
 
@@ -86,11 +94,22 @@ export default class Options extends Component<Args> {
         let optionIndex = optionItem.getAttribute('data-option-index');
         if (optionIndex === null) return;
         this.args.select.actions.choose(this._optionFromIndex(optionIndex), e);
-      });
+      }
+      element.addEventListener('touchstart', this.touchStartHandler);
+      element.addEventListener('touchend', this.touchEndHandler);
     }
     if (role !== 'group') {
       this.args.select.actions.scrollTo(this.args.select.highlighted);
     }
+  }
+
+  @action
+  removeHandlers(element: Element) {
+    element.removeEventListener('mouseup', this.mouseUpHandler);
+    element.removeEventListener('mouseover', this.mouseOverHandler);
+    element.removeEventListener('touchstart', this.touchStartHandler);
+    element.removeEventListener('touchmove', this.touchMoveHandler);
+    element.removeEventListener('touchend', this.touchEndHandler);
   }
 
   _optionFromIndex(index: string) {
@@ -100,5 +119,22 @@ export default class Options extends Component<Args> {
       option = option.options[parseInt(parts[i], 10)];
     }
     return option;
+  }
+
+  _hasMoved(endEvent: TouchEvent): boolean {
+    let moveEvent = this.touchMoveEvent;
+    if (!moveEvent) {
+      return false;
+    }
+
+    let changedTouch = moveEvent.changedTouches[0];
+    if (!endEvent.changedTouches?.[0] || (changedTouch as any).touchType !== 'stylus') {
+      return true;
+    }
+
+    // Distinguish stylus scroll and tap: if touch "distance" < 5px, we consider it a tap
+    let horizontalDistance = Math.abs(changedTouch.pageX - endEvent.changedTouches[0].pageX);
+    let verticalDistance = Math.abs(changedTouch.pageY - endEvent.changedTouches[0].pageY);
+    return horizontalDistance >= 5 || verticalDistance >= 5;
   }
 }

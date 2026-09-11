@@ -15,12 +15,13 @@ import {
   advanceSelectableOption,
   defaultMatcher,
   defaultTypeAheadMatcher,
+  pathForOption,
   MatcherFn
 } from '../utils/group-utils';
 import { restartableTask } from 'ember-concurrency-decorators';
 // @ts-ignore
 import { timeout } from 'ember-concurrency';
-import { Dropdown, DropdownActions } from 'ember-basic-dropdown/addon/components/basic-dropdown'
+import { Dropdown, DropdownActions } from 'ember-basic-dropdown/addon/components/basic-dropdown';
 
 interface SelectActions extends DropdownActions {
   search: (term: string) => void
@@ -58,7 +59,9 @@ export interface PowerSelectArgs {
   highlightOnHover?: boolean
   placeholderComponent?: string
   searchMessage?: string
+  searchMessageComponent?: string;
   noMatchesMessage?: string
+  noMatchesMessageComponent?: string;
   matchTriggerWidth?: boolean
   options: any[] | PromiseProxy<any[]>
   selected: any | PromiseProxy<any>
@@ -68,6 +71,9 @@ export interface PowerSelectArgs {
   searchEnabled?: boolean
   tabindex?: number | string
   triggerComponent?: string
+  beforeOptionsComponent?: string
+  optionsComponent?: string;
+  groupComponent?: string;
   matcher?: MatcherFn
   initiallyOpened?: boolean
   typeAheadOptionMatcher?: MatcherFn
@@ -88,8 +94,12 @@ const isArrayable = <T>(coll: any): coll is Arrayable<T> => {
   return typeof coll.toArray === 'function';
 }
 
-const isPromiseProxy = <T>(thing: any): thing is PromiseProxy<T> => {
+const isPromiseLike = <T>(thing: any): thing is Promise<T> => {
   return typeof thing.then === 'function';
+}
+
+const isPromiseProxyLike = <T>(thing: any): thing is PromiseProxy<T> => {
+  return isPromiseLike(thing) && Object.hasOwnProperty.call(thing, 'content');
 }
 
 const isCancellablePromise = <T>(thing: any): thing is CancellablePromise<T> => {
@@ -129,12 +139,25 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     assert('<PowerSelect> requires an `@onChange` function', this.args.onChange && typeof this.args.onChange === 'function');
   }
 
+  willDestroy() {
+    if (this._lastSelectedPromise && isPromiseProxyLike(this._lastSelectedPromise)) {
+      try {
+        removeObserver(this._lastSelectedPromise, 'content', this, this._selectedObserverCallback);
+      } catch {}
+      this._lastSelectedPromise = undefined;
+    }
+    super.willDestroy.apply(this, arguments);
+  }
+
   // Getters
   get highlightOnHover(): boolean {
     return this.args.highlightOnHover === undefined ? true : this.args.highlightOnHover
   }
-  get placeholderComponent(): string {
-    return this.args.placeholderComponent || 'power-select/placeholder';
+
+  get highlightedIndex(): string {
+    let results = this.results;
+    let highlighted = this.highlighted;
+    return pathForOption(results, highlighted);
   }
 
   get searchMessage(): string {
@@ -268,7 +291,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
   @action
   handleFocus(event: FocusEvent): void {
     if (!this.isDestroying) {
-      this.isActive = true;
+      scheduleOnce('actions', this, this._updateIsActive, true);
     }
     if (this.args.onFocus) {
       this.args.onFocus(this.storedAPI, event);
@@ -278,7 +301,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
   @action
   handleBlur(event: FocusEvent): void {
     if (!this.isDestroying) {
-      this.isActive = false;
+      scheduleOnce('actions', this, this._updateIsActive, false);
     }
     if (this.args.onBlur) {
       this.args.onBlur(this.storedAPI, event);
@@ -299,7 +322,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
   @action
   _updateOptions(): void {
     if (!this.args.options) return
-    if (isPromiseProxy(this.args.options)) {
+    if (isPromiseLike(this.args.options)) {
       if (this._lastOptionsPromise === this.args.options) return; // promise is still the same
       let currentOptionsPromise = this.args.options;
       this._lastOptionsPromise = currentOptionsPromise as PromiseProxy<any[]>;
@@ -332,13 +355,18 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     if (!this.args.selected) return;
     if (typeof this.args.selected.then === 'function') {
       if (this._lastSelectedPromise === this.args.selected) return; // promise is still the same
-      let currentSelectedPromise: PromiseProxy<any> = this.args.selected;
-      if (Object.hasOwnProperty.call(currentSelectedPromise, 'content')) { // seems a PromiseProxy
-        if (this._lastSelectedPromise) {
-          removeObserver(this._lastSelectedPromise, 'content', this._selectedObserverCallback);
-        }
-        addObserver(currentSelectedPromise, 'content', this, this._selectedObserverCallback);
+      if (this._lastSelectedPromise && isPromiseProxyLike(this._lastSelectedPromise)) {
+        removeObserver(this._lastSelectedPromise, 'content', this, this._selectedObserverCallback);
       }
+
+      let currentSelectedPromise: PromiseProxy<any> = this.args.selected;
+      currentSelectedPromise.then(() => {
+        if (this.isDestroyed || this.isDestroying) return;
+        if (isPromiseProxyLike(currentSelectedPromise)) {
+          addObserver(currentSelectedPromise, 'content', this, this._selectedObserverCallback);
+        }
+      });
+
       this._lastSelectedPromise = currentSelectedPromise;
       this._lastSelectedPromise.then(resolvedSelected => {
         if (this._lastSelectedPromise === currentSelectedPromise) {
@@ -348,7 +376,10 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
       });
     } else {
       this._resolvedSelected = undefined;
-      this._highlight(this.args.selected)
+      // Don't highlight args.selected array on multi-select
+      if (!Array.isArray(this.args.selected)) {
+        this._highlight(this.args.selected);
+      }
     }
   }
 
@@ -391,7 +422,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     if (this.args.scrollTo) {
       return this.args.scrollTo(option, select);
     }
-    let optionsList = document.querySelector(`[aria-controls="ember-power-select-trigger-${select.uniqueId}"]`) as HTMLElement;
+    let optionsList = document.getElementById(`ember-power-select-options-${select.uniqueId}`) as HTMLElement;
     if (!optionsList) {
       return;
     }
@@ -399,7 +430,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     if (index === -1) {
       return;
     }
-    let optionElement = (optionsList.querySelectorAll('[data-option-index]') as NodeListOf<HTMLElement>).item(index);
+    let optionElement = optionsList.querySelector(`[data-option-index='${index}']`) as HTMLElement;
     if (!optionElement) {
       return;
     }
@@ -435,7 +466,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
       return;
     }
     let searchResult = this.args.search(term, this.storedAPI);
-    if (searchResult && isPromiseProxy(searchResult)) {
+    if (searchResult && isPromiseLike(searchResult)) {
       this.loading = true;
       if (this._lastSearchPromise !== undefined && isCancellablePromise(this._lastSearchPromise)) {
         this._lastSearchPromise.cancel(); // Cancel ember-concurrency tasks
@@ -446,7 +477,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
           this._searchResult = results;
           this.loading = false;
           this.lastSearchedText = term;
-          this._resetHighlighted();
+          scheduleOnce('actions', this, this._resetHighlighted);
         }
       }).catch(() => {
         if (this._lastSearchPromise === searchResult) {
@@ -457,6 +488,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     } else {
       this.lastSearchedText = term;
       this._searchResult = searchResult;
+      scheduleOnce('actions', this, this._resetHighlighted);
     }
   }
 
@@ -532,6 +564,9 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
     return filterOptions(options || [], term, optionMatcher, skipDisabled);
   }
 
+  _updateIsActive(value: boolean) {
+    this.isActive = value;
+  }
 
   findWithOffset(options: any[], term: string, offset: number, skipDisabled = false): any {
     let typeAheadOptionMatcher = getOptionMatcher(this.args.typeAheadOptionMatcher || defaultTypeAheadMatcher, defaultTypeAheadMatcher, this.args.searchField);
