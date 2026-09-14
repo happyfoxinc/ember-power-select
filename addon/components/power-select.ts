@@ -69,6 +69,7 @@ export interface PowerSelectArgs {
   defaultHighlighted?: any
   searchField?: string
   searchEnabled?: boolean
+  allowGroupSearch?: boolean
   tabindex?: number | string
   triggerComponent?: string
   beforeOptionsComponent?: string
@@ -561,7 +562,7 @@ export default class PowerSelect extends Component<PowerSelectArgs> {
   _filter(options: any[], term: string, skipDisabled = false): any[] {
     let matcher = this.args.matcher || defaultMatcher;
     let optionMatcher = getOptionMatcher(matcher, defaultMatcher, this.args.searchField);
-    return filterOptions(options || [], term, optionMatcher, skipDisabled);
+    return filterOptions(options || [], term, optionMatcher, skipDisabled, this.args.allowGroupSearch);
   }
 
   _updateIsActive(value: boolean) {

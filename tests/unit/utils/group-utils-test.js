@@ -289,6 +289,22 @@ module('Unit | Utility | Group utils', function () {
     );
   });
 
+  test('#filterOptions respects group search if allowGroupSearch is enabled', function (assert) {
+    let matcher = function (value, searchText) {
+      return new RegExp(searchText, 'i').test(value) ? 0 : -1;
+    };
+    let allowGroupSearch = true;
+    assert.deepEqual(
+      filterOptions(groupedOptions, 'smal', matcher, false, allowGroupSearch),
+      [{ groupName: 'Smalls', options: ['zero', 'one', 'two', 'three'] }]
+    );
+    allowGroupSearch = false;
+    assert.deepEqual(
+      filterOptions(groupedOptions, 'smal', matcher, false, allowGroupSearch),
+      []
+    );
+  });
+
   test('#stripDiacritics returns the given string with diacritics normalized into simple letters', function (assert) {
     assert.strictEqual(stripDiacritics('áãàéèíìóõøòúùñ'), 'aaaeeiioooouun');
   });
